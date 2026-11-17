@@ -1,11 +1,11 @@
-# Nijatva Editor — v1.4.0
+# Nijatva Editor — v1.5.0
 
 Fully offline photo editor for Android. Kotlin + Jetpack Compose + Material 3,
 pure AMOLED black (`#000000`). No internet permission, no analytics, no cloud.
 
 * Package: `com.nijatva.photo.editor`
 * minSdk 26 (Android 8.0) · targetSdk / compileSdk 35 (Android 15)
-* APK: `Nijatva-Editor-1.4.0.apk` (~6.2 MB, signed, installable, updates over 1.0–1.3)
+* APK: `Nijatva-Editor-1.5.0.apk` (~6.3 MB, signed, installable, updates over 1.0–1.4)
 * Signing key: `nijatva-release.keystore` (alias `nijatva`, store & key password `nijatva`).
   Keep this file — future versions must be signed with the same key to update over the top.
 
@@ -14,10 +14,23 @@ pure AMOLED black (`#000000`). No internet permission, no analytics, no cloud.
 Copy the APK to the phone and open it (allow "Install unknown apps" for your file
 manager / browser when asked). Or over USB:
 
-    adb install -r Nijatva-Editor-1.4.0.apk
+    adb install -r Nijatva-Editor-1.5.0.apk
 
 The app also appears in the system "Open with" / "Edit with" sheet for images
 (`ACTION_EDIT`, `ACTION_SEND`, `ACTION_VIEW`).
+
+## What is new in 1.5.0
+
+* **Own photo browser instead of the system picker.** "Open photo" now opens an
+  in-app grid of the device gallery (MediaStore, newest first). The system picker
+  is still there as a secondary option, and the browser falls back to it when the
+  permission is refused.
+* **Suite hand-off**: if Nijatva Gallery or Nijatva Photos is installed, their
+  chips appear on the home screen and open them directly — no system chooser in
+  between. Everything is a soft dependency: a missing sibling app can never crash
+  the editor.
+* New permissions (only for the in-app browser): `READ_MEDIA_IMAGES` on Android 13+,
+  `READ_EXTERNAL_STORAGE` up to Android 12L. Still **no INTERNET permission**.
 
 ## What is new in 1.4.0
 

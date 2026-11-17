@@ -108,4 +108,11 @@
     <string name="tool_heal">Heal</string>
     <string name="mask_hint">Pick a mask tool, then draw or tap on the photo.</string>
     <string name="spread">Spread</string>
+    <string name="browse_title">Recent photos</string>
+    <string name="browse_permission">Nijatva Editor reads your gallery only to list photos here. Nothing leaves the device.</string>
+    <string name="allow_access">Allow access</string>
+    <string name="browse_empty">No photos found</string>
+    <string name="system_picker">System picker</string>
+    <string name="suite_gallery">Nijatva Gallery</string>
+    <string name="suite_photos">Nijatva Photos</string>
 </resources>

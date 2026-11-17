@@ -108,4 +108,11 @@
     <string name="tool_heal">हील</string>
     <string name="mask_hint">मास्क टूल चुनें, फिर फ़ोटो पर बनाएँ या टैप करें।</string>
     <string name="spread">फैलाव</string>
+    <string name="browse_title">हाल की फ़ोटो</string>
+    <string name="browse_permission">निजत्व एडिटर आपकी गैलरी सिर्फ़ यहाँ फ़ोटो दिखाने के लिए पढ़ता है। कुछ भी डिवाइस से बाहर नहीं जाता।</string>
+    <string name="allow_access">अनुमति दें</string>
+    <string name="browse_empty">कोई फ़ोटो नहीं मिली</string>
+    <string name="system_picker">सिस्टम पिकर</string>
+    <string name="suite_gallery">निजत्व गैलरी</string>
+    <string name="suite_photos">निजत्व फ़ोटो</string>
 </resources>

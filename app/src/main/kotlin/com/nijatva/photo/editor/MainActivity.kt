@@ -23,6 +23,8 @@ import com.nijatva.photo.editor.ui.AmoledBlack
 import com.nijatva.photo.editor.ui.EditorScreen
 import com.nijatva.photo.editor.ui.HomeScreen
 import com.nijatva.photo.editor.ui.NijatvaTheme
+import com.nijatva.photo.editor.ui.PhotoBrowserScreen
+import com.nijatva.photo.editor.ui.launchPackage
 
 class MainActivity : ComponentActivity() {
 
@@ -54,10 +56,11 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Screen { HOME, EDITOR, ABOUT }
+private enum class Screen { HOME, BROWSER, EDITOR, ABOUT }
 
 @Composable
 private fun NijatvaApp(initialUri: Uri?) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var screen by remember { mutableStateOf(if (initialUri != null) Screen.EDITOR else Screen.HOME) }
     var editUri by remember { mutableStateOf(initialUri) }
 
@@ -80,12 +83,31 @@ private fun NijatvaApp(initialUri: Uri?) {
     Box(modifier = Modifier.fillMaxSize().background(AmoledBlack)) {
         when (screen) {
             Screen.HOME -> HomeScreen(
-                onOpenPhoto = {
+                onOpenPhoto = { screen = Screen.BROWSER },
+                onSystemPicker = {
                     picker.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                     )
                 },
+                onOpenApp = { pkg ->
+                    if (!launchPackage(context, pkg)) {
+                        screen = Screen.BROWSER
+                    }
+                },
                 onAbout = { screen = Screen.ABOUT }
+            )
+
+            Screen.BROWSER -> PhotoBrowserScreen(
+                onPick = { picked ->
+                    editUri = picked
+                    screen = Screen.EDITOR
+                },
+                onBack = { screen = Screen.HOME },
+                onSystemPicker = {
+                    picker.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                }
             )
 
             Screen.EDITOR -> {
