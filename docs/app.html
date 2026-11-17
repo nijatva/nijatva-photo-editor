@@ -15,6 +15,7 @@
     --text:#f2f2f2; --muted:#9a9a9e; --dim:#6e6e73;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  [hidden]{display:none !important}
   html,body{height:100%}
   body{
     margin:0; background:var(--bg); color:var(--text); overflow:hidden;
@@ -25,8 +26,10 @@
   .app{display:flex;flex-direction:column;height:100dvh}
 
   /* top bar */
-  .top{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg);flex:0 0 auto}
-  .brand{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px}
+  .top{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg);flex:0 0 auto;overflow-x:auto;scrollbar-width:none}
+  .top::-webkit-scrollbar{display:none}
+  .top>*{flex:0 0 auto}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;white-space:nowrap}
   .brand svg{width:22px;height:22px}
   .top .spacer{flex:1}
   .tbtn{padding:7px 10px;border-radius:10px;font-size:12.5px;color:var(--muted)}
@@ -79,6 +82,7 @@
   .sw.on i{left:21px;background:#00110d}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#232326;color:var(--text);padding:11px 18px;border-radius:13px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s}
   .toast.show{opacity:1}
+  @media (max-width:520px){ .top{gap:4px;padding:8px 8px} .tbtn{padding:6px 7px;font-size:11.5px} .brand{font-size:12.5px} .brand svg{width:18px;height:18px} .tbtn.primary{padding:6px 11px} }
   @media (min-width:900px){ .dock{max-height:40dvh} }
 </style>
 </head>
@@ -93,7 +97,7 @@
     <button class="tbtn" id="openBtn">Open</button>
     <button class="tbtn" id="undoBtn" disabled>Undo</button>
     <button class="tbtn" id="redoBtn" disabled>Redo</button>
-    <button class="tbtn" id="cmpBtn" disabled>Original</button>
+    <button class="tbtn" id="cmpBtn" disabled>Orig</button>
     <button class="tbtn primary" id="saveBtn" disabled>Save</button>
   </div>
 
