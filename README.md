@@ -1,11 +1,11 @@
-# Nijatva Editor — v1.3.0
+# Nijatva Editor — v1.4.0
 
 Fully offline photo editor for Android. Kotlin + Jetpack Compose + Material 3,
 pure AMOLED black (`#000000`). No internet permission, no analytics, no cloud.
 
 * Package: `com.nijatva.photo.editor`
 * minSdk 26 (Android 8.0) · targetSdk / compileSdk 35 (Android 15)
-* APK: `Nijatva-Editor-1.3.0.apk` (~6.2 MB, signed, installable, updates over 1.0/1.1)
+* APK: `Nijatva-Editor-1.4.0.apk` (~6.2 MB, signed, installable, updates over 1.0–1.3)
 * Signing key: `nijatva-release.keystore` (alias `nijatva`, store & key password `nijatva`).
   Keep this file — future versions must be signed with the same key to update over the top.
 
@@ -14,10 +14,28 @@ pure AMOLED black (`#000000`). No internet permission, no analytics, no cloud.
 Copy the APK to the phone and open it (allow "Install unknown apps" for your file
 manager / browser when asked). Or over USB:
 
-    adb install -r Nijatva-Editor-1.3.0.apk
+    adb install -r Nijatva-Editor-1.4.0.apk
 
 The app also appears in the system "Open with" / "Edit with" sheet for images
 (`ACTION_EDIT`, `ACTION_SEND`, `ACTION_VIEW`).
+
+## What is new in 1.4.0
+
+* **Six mask types** in the Local tab, Lightroom-style: brush, linear gradient,
+  radial gradient, luminance range, colour range, and an eraser that removes a
+  local effect and puts the original pixels back. Every mask is a layer, so it is
+  undoable and replayed at full resolution on export.
+* **Per-mask grading**: each mask now carries exposure, contrast, highlights,
+  shadows, saturation and warmth (not just three sliders), plus spread for range
+  masks and brush size for brush masks.
+* **Mask list + red mask overlay** — switch between masks (M1, M2 …), delete one,
+  or toggle "Show mask" to see exactly which pixels are selected.
+* **Healing brush** (Markup tab → Heal): paint over a blemish and the pixels are
+  replaced from a nearby patch, blended through a feathered outline.
+* Tapping with the Light-range tool samples the luminance under your finger;
+  tapping with Colour-range samples that hue.
+* Editor UI split into `EditorScreen.kt` + `EditorPanels.kt`; Compose compiler
+  runs with source info off for faster, smaller builds.
 
 ## What is new in 1.3.0
 

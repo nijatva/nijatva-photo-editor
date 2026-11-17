@@ -370,6 +370,36 @@ object AdvancedOps {
                 )
                 canvas.restore()
             }
+            MarkupMode.HEAL -> {
+                val outline = Path()
+                strokePaint.strokeWidth = strokeWidthPx(layer, w, h) * 1.5f
+                if (!strokePaint.getFillPath(path, outline)) return
+                val bounds = RectF()
+                outline.computeBounds(bounds, true)
+                val rect = Rect(
+                    bounds.left.toInt().coerceIn(0, src.width - 1),
+                    bounds.top.toInt().coerceIn(0, src.height - 1),
+                    bounds.right.toInt().coerceIn(1, src.width),
+                    bounds.bottom.toInt().coerceIn(1, src.height)
+                )
+                if (rect.width() < 3 || rect.height() < 3) return
+                // sample from a patch just above-left of the stroke, clamped inside the frame
+                val shift = (strokePaint.strokeWidth * 1.8f).toInt().coerceAtLeast(6)
+                var sx = rect.left - shift
+                var sy = rect.top - shift
+                sx = sx.coerceIn(0, max(0, src.width - rect.width()))
+                sy = sy.coerceIn(0, max(0, src.height - rect.height()))
+                val source = Rect(sx, sy, sx + rect.width(), sy + rect.height())
+                canvas.save()
+                canvas.clipPath(outline)
+                canvas.drawBitmap(
+                    src,
+                    source,
+                    RectF(rect),
+                    Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
+                )
+                canvas.restore()
+            }
             MarkupMode.TEXT -> Unit
         }
     }
@@ -408,27 +438,205 @@ object AdvancedOps {
 
     // -------------------------------------------------------- local masks
 
-    /**
-     * Applies each painted mask's own grade only where the user brushed.
-     * Mask is feathered, then blended per pixel: out = base + (graded - base) * mask.
-     */
+    /** Applies every mask's own grade, then any eraser strokes, in order. */
     fun applyLocal(src: Bitmap, layers: List<LocalAdjustLayer>): Bitmap {
         var out = src
         for (layer in layers) {
-            if (layer.isNoop || layer.points.size < 2) continue
-            out = applyOneLocal(out, layer)
+            out = when (layer.kind) {
+                MaskKind.ERASE -> eraseThrough(out, src, layer)
+                else -> if (layer.isNoop) out else gradeThrough(out, layer)
+            }
         }
         return out
     }
 
-    private fun applyOneLocal(src: Bitmap, layer: LocalAdjustLayer): Bitmap {
+    /** Red preview of one mask, so the user can see exactly what is selected. */
+    fun maskOverlay(src: Bitmap, layer: LocalAdjustLayer): Bitmap {
+        val w = src.width
+        val h = src.height
+        val mask = buildMask(layer, src, w, h) ?: return src
+        val out = src.copy(Bitmap.Config.ARGB_8888, true) ?: return src
+        val px = IntArray(w * h)
+        out.getPixels(px, 0, w, 0, 0, w, h)
+        for (i in px.indices) {
+            val a = mask[i]
+            if (a <= 0.02f) continue
+            val c = px[i]
+            val r = ((c shr 16) and 0xFF).toFloat()
+            val g = ((c shr 8) and 0xFF).toFloat()
+            val b = (c and 0xFF).toFloat()
+            val k = (a * 0.8f).coerceIn(0f, 0.8f)
+            px[i] = (0xFF shl 24) or
+                (clamp255(r * (1f - k) + 255f * k) shl 16) or
+                (clamp255(g * (1f - k) + 40f * k) shl 8) or
+                clamp255(b * (1f - k) + 70f * k)
+        }
+        out.setPixels(px, 0, w, 0, 0, w, h)
+        return out
+    }
+
+    private fun gradeThrough(src: Bitmap, layer: LocalAdjustLayer): Bitmap {
         val w = src.width
         val h = src.height
         if (w < 4 || h < 4) return src
+        val mask = buildMask(layer, src, w, h) ?: return src
 
-        // 1. mask (white stroke on transparent), then feather by down/up scaling
-        val maskRaw = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        val maskCanvas = Canvas(maskRaw)
+        val graded = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(graded)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        paint.colorFilter = ColorMatrixColorFilter(layer.matrix())
+        canvas.drawBitmap(src, 0f, 0f, paint)
+
+        val basePx = IntArray(w * h)
+        val gradedPx = IntArray(w * h)
+        src.getPixels(basePx, 0, w, 0, 0, w, h)
+        graded.getPixels(gradedPx, 0, w, 0, 0, w, h)
+        val outPx = IntArray(w * h)
+
+        for (i in basePx.indices) {
+            val a = mask[i]
+            if (a <= 0.002f) continue
+            val g = gradedPx[i]
+            var r = ((g shr 16) and 0xFF).toFloat()
+            var gg = ((g shr 8) and 0xFF).toFloat()
+            var b = (g and 0xFF).toFloat()
+
+            if (layer.highlights != 0f || layer.shadows != 0f) {
+                val lum = (0.299f * r + 0.587f * gg + 0.114f * b) / 255f
+                if (layer.shadows != 0f) {
+                    val f = layer.shadows * (1f - lum) * (1f - lum) * 100f
+                    r += f; gg += f; b += f
+                }
+                if (layer.highlights != 0f) {
+                    val f = layer.highlights * lum * lum * 100f
+                    r += f; gg += f; b += f
+                }
+            }
+
+            val base = basePx[i]
+            val br = ((base shr 16) and 0xFF).toFloat()
+            val bg = ((base shr 8) and 0xFF).toFloat()
+            val bb = (base and 0xFF).toFloat()
+            outPx[i] = (0xFF shl 24) or
+                (clamp255(br + (r - br) * a) shl 16) or
+                (clamp255(bg + (gg - bg) * a) shl 8) or
+                clamp255(bb + (b - bb) * a)
+        }
+
+        val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        out.setPixels(outPx, 0, w, 0, 0, w, h)
+        return out
+    }
+
+    private fun eraseThrough(current: Bitmap, original: Bitmap, layer: LocalAdjustLayer): Bitmap {
+        val w = current.width
+        val h = current.height
+        if (w < 4 || h < 4 || original.width != w || original.height != h) return current
+        val mask = buildMask(layer, current, w, h) ?: return current
+        val curPx = IntArray(w * h)
+        val orgPx = IntArray(w * h)
+        current.getPixels(curPx, 0, w, 0, 0, w, h)
+        original.getPixels(orgPx, 0, w, 0, 0, w, h)
+        val outPx = IntArray(w * h)
+        for (i in curPx.indices) {
+            val a = mask[i]
+            if (a <= 0.002f) continue
+            val c = curPx[i]
+            val o = orgPx[i]
+            val r = ((c shr 16) and 0xFF) + (((o shr 16) and 0xFF) - ((c shr 16) and 0xFF)) * a
+            val g = ((c shr 8) and 0xFF) + (((o shr 8) and 0xFF) - ((c shr 8) and 0xFF)) * a
+            val b = (c and 0xFF) + ((o and 0xFF) - (c and 0xFF)) * a
+            outPx[i] = (0xFF shl 24) or (clamp255(r) shl 16) or (clamp255(g) shl 8) or clamp255(b)
+        }
+        val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        out.setPixels(outPx, 0, w, 0, 0, w, h)
+        return out
+    }
+
+    // ------------------------------------------------------------- masks
+
+    private fun buildMask(layer: LocalAdjustLayer, src: Bitmap, w: Int, h: Int): FloatArray? {
+        val feather = layer.feather.coerceIn(0.02f, 1f)
+        return when (layer.kind) {
+            MaskKind.BRUSH, MaskKind.ERASE -> brushMask(layer, w, h)
+            MaskKind.LINEAR -> {
+                val dx = layer.x2 - layer.x1
+                val dy = layer.y2 - layer.y1
+                val len2 = dx * dx + dy * dy
+                if (len2 < 1e-5f) return null
+                FloatArray(w * h) { i ->
+                    val px = (i % w) / w.toFloat()
+                    val py = (i / w) / h.toFloat()
+                    val t = ((px - layer.x1) * dx + (py - layer.y1) * dy) / len2
+                    ramp(t, feather)
+                }
+            }
+            MaskKind.RADIAL -> FloatArray(w * h) { i ->
+                val px = (i % w) / w.toFloat()
+                val py = (i / w) / h.toFloat()
+                val ddx = (px - layer.cx) / layer.radius.coerceAtLeast(0.02f)
+                val ddy = (py - layer.cy) / layer.radius.coerceAtLeast(0.02f)
+                val d = sqrt(ddx * ddx + ddy * ddy)
+                ramp(1f - d, feather)
+            }
+            MaskKind.LIGHT -> {
+                val px = IntArray(w * h)
+                src.getPixels(px, 0, w, 0, 0, w, h)
+                val band = 0.05f + feather * 0.30f
+                FloatArray(w * h) { i ->
+                    val c = px[i]
+                    val lum = (0.299f * ((c shr 16) and 0xFF) +
+                        0.587f * ((c shr 8) and 0xFF) +
+                        0.114f * (c and 0xFF)) / 255f
+                    when {
+                        lum < layer.lo - band -> 0f
+                        lum < layer.lo -> (lum - (layer.lo - band)) / band
+                        lum <= layer.hi -> 1f
+                        lum < layer.hi + band -> 1f - (lum - layer.hi) / band
+                        else -> 0f
+                    }
+                }
+            }
+            MaskKind.COLOR -> {
+                val px = IntArray(w * h)
+                src.getPixels(px, 0, w, 0, 0, w, h)
+                val tol = layer.tolerance.coerceAtLeast(4f)
+                FloatArray(w * h) { i ->
+                    val c = px[i]
+                    val hue = hueOf((c shr 16) and 0xFF, (c shr 8) and 0xFF, c and 0xFF)
+                    if (hue < 0f) 0f else {
+                        var d = abs(hue - layer.targetHue)
+                        if (d > 180f) d = 360f - d
+                        (1f - d / tol).coerceIn(0f, 1f)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun ramp(t: Float, feather: Float): Float {
+        val x = ((t - 0.5f) / feather + 0.5f).coerceIn(0f, 1f)
+        return x * x * (3f - 2f * x)
+    }
+
+    private fun hueOf(r: Int, g: Int, b: Int): Float {
+        val mx = max(r, max(g, b))
+        val mn = min(r, min(g, b))
+        val delta = mx - mn
+        if (delta < 8) return -1f
+        var hue = when {
+            mx == r -> 60f * (((g - b).toFloat() / delta) % 6f)
+            mx == g -> 60f * (((b - r).toFloat() / delta) + 2f)
+            else -> 60f * (((r - g).toFloat() / delta) + 4f)
+        }
+        if (hue < 0f) hue += 360f
+        return hue
+    }
+
+    private fun brushMask(layer: LocalAdjustLayer, w: Int, h: Int): FloatArray? {
+        if (layer.points.size < 2) return null
+        val raw = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(raw)
         val brush = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             style = Paint.Style.STROKE
@@ -441,44 +649,17 @@ object AdvancedOps {
         for (i in 1 until layer.points.size) {
             path.lineTo(layer.points[i].first * w, layer.points[i].second * h)
         }
-        maskCanvas.drawPath(path, brush)
+        canvas.drawPath(path, brush)
 
-        val small = Bitmap.createScaledBitmap(maskRaw, max(1, w / 12), max(1, h / 12), true)
-        val mask = Bitmap.createScaledBitmap(small, w, h, true)
-
-        // 2. graded copy of the whole frame
-        val graded = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        val gradedCanvas = Canvas(graded)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
-        paint.colorFilter = ColorMatrixColorFilter(layer.matrix())
-        gradedCanvas.drawBitmap(src, 0f, 0f, paint)
-
-        // 3. blend through the mask
-        val basePx = IntArray(w * h)
-        val gradedPx = IntArray(w * h)
-        val maskPx = IntArray(w * h)
-        src.getPixels(basePx, 0, w, 0, 0, w, h)
-        graded.getPixels(gradedPx, 0, w, 0, 0, w, h)
-        mask.getPixels(maskPx, 0, w, 0, 0, w, h)
-
-        for (i in basePx.indices) {
-            val a = (maskPx[i] ushr 24) and 0xFF
-            if (a == 0) continue
-            val f = a / 255f
-            val b = basePx[i]
-            val g = gradedPx[i]
-            val r = ((b shr 16) and 0xFF) + (((g shr 16) and 0xFF) - ((b shr 16) and 0xFF)) * f
-            val gg = ((b shr 8) and 0xFF) + (((g shr 8) and 0xFF) - ((b shr 8) and 0xFF)) * f
-            val bb = (b and 0xFF) + ((g and 0xFF) - (b and 0xFF)) * f
-            basePx[i] = (0xFF shl 24) or (clamp255(r) shl 16) or (clamp255(gg) shl 8) or clamp255(bb)
-        }
-
-        val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        out.setPixels(basePx, 0, w, 0, 0, w, h)
-        return out
+        val divisor = (4 + (1f - layer.feather.coerceIn(0f, 1f)) * 16f).toInt().coerceAtLeast(2)
+        val small = Bitmap.createScaledBitmap(raw, max(1, w / divisor), max(1, h / divisor), true)
+        val soft = Bitmap.createScaledBitmap(small, w, h, true)
+        val px = IntArray(w * h)
+        soft.getPixels(px, 0, w, 0, 0, w, h)
+        return FloatArray(w * h) { i -> ((px[i] ushr 24) and 0xFF) / 255f }
     }
 
-    // ----------------------------------------------------------- histogram
+    // ----------------------------------------------------------- histogram    // ----------------------------------------------------------- histogram
 
     fun histogram(src: Bitmap, bins: Int = 64): Array<IntArray> {
         val r = IntArray(bins)

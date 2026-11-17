@@ -192,7 +192,7 @@ fun AboutScreen(onBack: () -> Unit) {
             Spacer(Modifier.width(16.dp))
             Column {
                 Text(stringResource(R.string.app_name), color = TextPrimary, fontSize = 22.sp)
-                Text("v1.2.0", color = TextSecondary, fontSize = 13.sp)
+                Text("v1.4.0", color = TextSecondary, fontSize = 13.sp)
             }
         }
         Spacer(Modifier.height(24.dp))

@@ -8,7 +8,7 @@ data class CropRect(val l: Float = 0f, val t: Float = 0f, val r: Float = 1f, val
     val height: Float get() = (b - t).coerceAtLeast(0.02f)
 }
 
-enum class MarkupMode { PEN, HIGHLIGHT, PIXELATE, BLUR, BLACKOUT, TEXT }
+enum class MarkupMode { PEN, HIGHLIGHT, PIXELATE, BLUR, BLACKOUT, TEXT, HEAL }
 
 sealed interface Layer {
     val id: Long
@@ -32,18 +32,45 @@ data class TextLayer(
     val color: Int
 ) : Layer
 
-/** A painted mask with its own local grade (Lightroom-style brush). */
+/** Mask shapes a local adjustment can use. */
+enum class MaskKind { BRUSH, LINEAR, RADIAL, LIGHT, COLOR, ERASE }
+
+/**
+ * One local adjustment: a mask (brush stroke, linear/radial gradient, luminance
+ * range, colour range or eraser) plus its own grade. Masks are layers, so they
+ * are undoable and replayed at full resolution on export.
+ */
 data class LocalAdjustLayer(
     override val id: Long,
-    val points: List<Pair<Float, Float>>,
-    val width: Float,
+    val kind: MaskKind = MaskKind.BRUSH,
+    val points: List<Pair<Float, Float>> = emptyList(),
+    val width: Float = 0.03f,
+    // linear gradient: start -> end
+    val x1: Float = 0.5f,
+    val y1: Float = 0.15f,
+    val x2: Float = 0.5f,
+    val y2: Float = 0.85f,
+    // radial: centre + radius
+    val cx: Float = 0.5f,
+    val cy: Float = 0.5f,
+    val radius: Float = 0.3f,
+    // range masks
+    val lo: Float = 0.25f,
+    val hi: Float = 0.75f,
+    val targetHue: Float = 0f,
+    val tolerance: Float = 30f,
+    val feather: Float = 0.45f,
+    // local grade
     val exposure: Float = 0f,
     val contrast: Float = 0f,
+    val highlights: Float = 0f,
+    val shadows: Float = 0f,
     val saturation: Float = 0f,
     val warmth: Float = 0f
 ) : Layer {
     val isNoop: Boolean
-        get() = exposure == 0f && contrast == 0f && saturation == 0f && warmth == 0f
+        get() = exposure == 0f && contrast == 0f && highlights == 0f &&
+            shadows == 0f && saturation == 0f && warmth == 0f
 
     fun matrix(): ColorMatrix {
         val out = ColorMatrix()

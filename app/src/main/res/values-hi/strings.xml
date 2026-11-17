@@ -97,4 +97,15 @@
     <string name="tab_local">लोकल</string>
     <string name="local_hint">इफ़ेक्ट सेट करें, फिर फ़ोटो पर ब्रश करें - सिर्फ़ ब्रश किया हिस्सा बदलेगा।</string>
     <string name="clear_masks">मास्क हटाएँ</string>
+    <string name="mask_brush">ब्रश</string>
+    <string name="mask_gradient">ग्रेडिएंट</string>
+    <string name="mask_radial">रेडियल</string>
+    <string name="mask_light">लाइट रेंज</string>
+    <string name="mask_color">कलर रेंज</string>
+    <string name="mask_erase">मिटाएँ</string>
+    <string name="show_mask">मास्क दिखाएँ</string>
+    <string name="delete_mask">मास्क हटाएँ</string>
+    <string name="tool_heal">हील</string>
+    <string name="mask_hint">मास्क टूल चुनें, फिर फ़ोटो पर बनाएँ या टैप करें।</string>
+    <string name="spread">फैलाव</string>
 </resources>

@@ -13,8 +13,8 @@ android {
         applicationId = "com.nijatva.photo.editor"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.3.0"
+        versionCode = 5
+        versionName = "1.4.0"
         resourceConfigurations += listOf("en", "hi")
     }
 
@@ -48,6 +48,12 @@ android {
     packaging { resources.excludes += setOf("/META-INF/{AL2.0,LGPL2.1}") }
 }
 
+composeCompiler {
+    // Faster builds, smaller dex; only affects debug/source info.
+    includeSourceInformation.set(false)
+    generateFunctionKeyMetaClasses.set(false)
+}
+
 dependencies {
     // Nijatva signature: shared Appearance + Developer screens
     implementation(files("libs/nijatva-signature-1.0.0.aar"))
@@ -60,5 +66,4 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-core")
 }

@@ -97,4 +97,15 @@
     <string name="tab_local">Local</string>
     <string name="local_hint">Set the effect, then paint on the photo - only the painted area changes.</string>
     <string name="clear_masks">Clear masks</string>
+    <string name="mask_brush">Brush</string>
+    <string name="mask_gradient">Gradient</string>
+    <string name="mask_radial">Radial</string>
+    <string name="mask_light">Light range</string>
+    <string name="mask_color">Colour range</string>
+    <string name="mask_erase">Erase</string>
+    <string name="show_mask">Show mask</string>
+    <string name="delete_mask">Delete mask</string>
+    <string name="tool_heal">Heal</string>
+    <string name="mask_hint">Pick a mask tool, then draw or tap on the photo.</string>
+    <string name="spread">Spread</string>
 </resources>
