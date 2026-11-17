@@ -163,6 +163,7 @@ fun HomeScreen(onOpenPhoto: () -> Unit, onAbout: () -> Unit) {
 
 @Composable
 fun AboutScreen(onBack: () -> Unit) {
+    val signatureContext = androidx.compose.ui.platform.LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -201,6 +202,13 @@ fun AboutScreen(onBack: () -> Unit) {
             fontSize = 14.sp,
             lineHeight = 21.sp
         )
+        TextButton(onClick = {
+            signatureContext.startActivity(
+                com.nijatva.signature.Signature.developer(signatureContext)
+            )
+        }) {
+            Text("Nijatva signature", color = NijatvaTeal)
+        }
         Spacer(Modifier.height(20.dp))
         Box(
             modifier = Modifier
