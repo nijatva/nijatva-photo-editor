@@ -56,7 +56,7 @@ composeCompiler {
 
 dependencies {
     // Nijatva signature: shared Appearance + Developer screens
-    implementation(files("libs/nijatva-signature-1.0.0.aar"))
+    implementation("com.nijatva:signature:1.0.0")
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
