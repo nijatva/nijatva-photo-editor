@@ -1,11 +1,11 @@
-# Nijatva Editor — v1.5.0
+# Nijatva Editor — v1.3.0
 
 Fully offline photo editor for Android. Kotlin + Jetpack Compose + Material 3,
 pure AMOLED black (`#000000`). No internet permission, no analytics, no cloud.
 
 * Package: `com.nijatva.photo.editor`
 * minSdk 26 (Android 8.0) · targetSdk / compileSdk 35 (Android 15)
-* APK: `Nijatva-Editor-1.5.0.apk` (~6.3 MB, signed, installable, updates over 1.0–1.4)
+* APK: `Nijatva-Editor-1.3.0.apk` (~6.2 MB, signed, installable, updates over 1.0/1.1)
 * Signing key: `nijatva-release.keystore` (alias `nijatva`, store & key password `nijatva`).
   Keep this file — future versions must be signed with the same key to update over the top.
 
@@ -14,41 +14,10 @@ pure AMOLED black (`#000000`). No internet permission, no analytics, no cloud.
 Copy the APK to the phone and open it (allow "Install unknown apps" for your file
 manager / browser when asked). Or over USB:
 
-    adb install -r Nijatva-Editor-1.5.0.apk
+    adb install -r Nijatva-Editor-1.3.0.apk
 
 The app also appears in the system "Open with" / "Edit with" sheet for images
 (`ACTION_EDIT`, `ACTION_SEND`, `ACTION_VIEW`).
-
-## What is new in 1.5.0
-
-* **Own photo browser instead of the system picker.** "Open photo" now opens an
-  in-app grid of the device gallery (MediaStore, newest first). The system picker
-  is still there as a secondary option, and the browser falls back to it when the
-  permission is refused.
-* **Suite hand-off**: if Nijatva Gallery or Nijatva Photos is installed, their
-  chips appear on the home screen and open them directly — no system chooser in
-  between. Everything is a soft dependency: a missing sibling app can never crash
-  the editor.
-* New permissions (only for the in-app browser): `READ_MEDIA_IMAGES` on Android 13+,
-  `READ_EXTERNAL_STORAGE` up to Android 12L. Still **no INTERNET permission**.
-
-## What is new in 1.4.0
-
-* **Six mask types** in the Local tab, Lightroom-style: brush, linear gradient,
-  radial gradient, luminance range, colour range, and an eraser that removes a
-  local effect and puts the original pixels back. Every mask is a layer, so it is
-  undoable and replayed at full resolution on export.
-* **Per-mask grading**: each mask now carries exposure, contrast, highlights,
-  shadows, saturation and warmth (not just three sliders), plus spread for range
-  masks and brush size for brush masks.
-* **Mask list + red mask overlay** — switch between masks (M1, M2 …), delete one,
-  or toggle "Show mask" to see exactly which pixels are selected.
-* **Healing brush** (Markup tab → Heal): paint over a blemish and the pixels are
-  replaced from a nearby patch, blended through a feathered outline.
-* Tapping with the Light-range tool samples the luminance under your finger;
-  tapping with Colour-range samples that hue.
-* Editor UI split into `EditorScreen.kt` + `EditorPanels.kt`; Compose compiler
-  runs with source info off for faster, smaller builds.
 
 ## What is new in 1.3.0
 
@@ -150,3 +119,19 @@ build use `./gradlew :app:assembleDebug`.
 ## Attribution
 
 APK always made by Vasudev Dangaya.
+
+## Web app
+
+`web/` is the source of the browser editor (plain HTML/CSS/JS, no build step) and
+`docs/app/` is the copy that GitHub Pages serves. **Push both together** — Pages
+serves `docs/`, so editing only `web/` leaves the live site on the old version.
+
+```
+web/                docs/
+  index.html    ->    app/index.html      UI markup
+  styles.css    ->    app/styles.css      design tokens, AMOLED theme
+  app.js        ->    app/app.js          canvas pipeline, tools, export
+  manifest.webmanifest, sw.js, icons      PWA shell (offline)
+docs/index.html                          landing page (APK + web app)
+docs/app.html                            redirect -> app/
+```
