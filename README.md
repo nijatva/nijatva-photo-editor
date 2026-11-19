@@ -140,3 +140,22 @@ saturation, warmth), **Curves** (5-point tone curve baked to a 256-step LUT),
 Markup (pen, highlighter, pixelate, blackout) and Export (JPEG/PNG/WebP, quality).
 docs/app.html                            redirect -> app/
 ```
+
+## CI
+
+`.github/workflows/build.yml` builds an APK on every push to `main`, on a `v*` tag
+and on demand (Actions → build → Run workflow). The APK is attached to the run as
+the `nijatva-editor-apk` artefact.
+
+* With the repository secret **`KEYSTORE_BASE64`** set, it builds the **signed
+  release** APK (the keystore at the project root; alias and passwords are in
+  `app/build.gradle.kts`). Create the secret with
+  `base64 -w0 nijatva-release.keystore`.
+* Without that secret it falls back to a **debug** APK (package id gets the
+  `.debug` suffix), which is enough to test a build.
+
+`GITHUB_TOKEN` is passed through as `GITHUB_TOKEN` because `com.nijatva:signature`
+resolves from GitHub Packages; the job needs `packages: read`.
+
+The repository now also carries the Gradle wrapper, so `./gradlew` works without a
+local Gradle install.
