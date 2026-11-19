@@ -133,5 +133,10 @@ web/                docs/
   app.js        ->    app/app.js          canvas pipeline, tools, export
   manifest.webmanifest, sw.js, icons      PWA shell (offline)
 docs/index.html                          landing page (APK + web app)
+
+Web app panels: Crop, Adjust (exposure, contrast, highlights, shadows,
+saturation, warmth), **Curves** (5-point tone curve baked to a 256-step LUT),
+**HSL** (8 colour ranges with hue / saturation / luminance), Filters (9 presets),
+Markup (pen, highlighter, pixelate, blackout) and Export (JPEG/PNG/WebP, quality).
 docs/app.html                            redirect -> app/
 ```

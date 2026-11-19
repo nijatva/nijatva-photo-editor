@@ -4,7 +4,9 @@
 const DEFAULTS = () => ({
   rotation: 0, flipH: false, flipV: false, aspect: null,
   exposure: 0, contrast: 0, highlights: 0, shadows: 0, saturation: 0, warmth: 0,
-  filter: "none", layers: []
+  filter: "none", layers: [],
+  curve: [0, 0.25, 0.5, 0.75, 1],
+  hsl: Array.from({ length: 8 }, () => ({ h: 0, s: 0, l: 0 }))
 });
 
 let state = DEFAULTS();
@@ -98,6 +100,69 @@ function drawBase(target, src, maxEdge){
   return c;
 }
 
+
+const HSL_CHANNELS = [
+  ["Red", 0], ["Orange", 30], ["Yellow", 60], ["Green", 120],
+  ["Aqua", 180], ["Blue", 240], ["Purple", 285], ["Magenta", 320]
+];
+
+function catmull(p0, p1, p2, p3, t){
+  const t2 = t * t, t3 = t2 * t;
+  return 0.5 * ((2 * p1) + (-p0 + p2) * t +
+    (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (-p0 + 3 * p1 - 3 * p2 + p3) * t3);
+}
+
+function curveLut(points){
+  const lut = new Uint8ClampedArray(256);
+  const n = points.length;
+  for (let i = 0; i < 256; i++){
+    const t = (i / 255) * (n - 1);
+    const idx = Math.min(n - 2, Math.max(0, Math.floor(t)));
+    const f = t - idx;
+    const p0 = points[Math.max(0, idx - 1)];
+    const p1 = points[idx];
+    const p2 = points[idx + 1];
+    const p3 = points[Math.min(n - 1, idx + 2)];
+    lut[i] = Math.round(Math.min(1, Math.max(0, catmull(p0, p1, p2, p3, f))) * 255);
+  }
+  return lut;
+}
+
+function isNeutralCurve(c){
+  return c.length === 5 && Math.abs(c[0]) < 1e-4 && Math.abs(c[1] - .25) < 1e-4 &&
+    Math.abs(c[2] - .5) < 1e-4 && Math.abs(c[3] - .75) < 1e-4 && Math.abs(c[4] - 1) < 1e-4;
+}
+
+function rgbToHsv(r, g, b){
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0;
+  if (d > 1){
+    if (mx === r) h = 60 * (((g - b) / d) % 6);
+    else if (mx === g) h = 60 * (((b - r) / d) + 2);
+    else h = 60 * (((r - g) / d) + 4);
+  }
+  if (h < 0) h += 360;
+  return [h, mx <= 0 ? 0 : d / mx, mx / 255];
+}
+
+function hsvToRgb(h, s, v){
+  const c = v * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = v - c;
+  let r = 0, g = 0, b = 0;
+  if (h < 60){ r = c; g = x; }
+  else if (h < 120){ r = x; g = c; }
+  else if (h < 180){ g = c; b = x; }
+  else if (h < 240){ g = x; b = c; }
+  else if (h < 300){ r = x; b = c; }
+  else { r = c; b = x; }
+  return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
+}
+
+function bandWeight(hue, centre){
+  let d = Math.abs(hue - centre);
+  if (d > 180) d = 360 - d;
+  return Math.min(1, Math.max(0, 1 - d / 45));
+}
+
 function applyColour(canvas){
   const m = FILTERS[state.filter] || FILTERS.none;
   const exp = 1 + state.exposure * 0.9;
@@ -106,6 +171,8 @@ function applyColour(canvas){
   const satK = 1 + state.saturation;
   const warm = state.warmth * 45;
   const hi = state.highlights, sh = state.shadows;
+  const lut = isNeutralCurve(state.curve) ? null : curveLut(state.curve);
+  const hslOn = state.hsl.some(c => c.h || c.s || c.l);
   const img = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
   const d = img.data;
   for (let i = 0; i < d.length; i += 4){
@@ -132,6 +199,34 @@ function applyColour(canvas){
     }
     // warmth
     if (warm){ r += warm; b -= warm; }
+    // tone curve (master)
+    if (lut){
+      r = lut[Math.max(0, Math.min(255, r | 0))];
+      g = lut[Math.max(0, Math.min(255, g | 0))];
+      b = lut[Math.max(0, Math.min(255, b | 0))];
+    }
+    // eight-channel HSL mixer
+    if (hslOn){
+      const clamped = [Math.min(255, Math.max(0, r)), Math.min(255, Math.max(0, g)), Math.min(255, Math.max(0, b))];
+      const hsv = rgbToHsv(clamped[0], clamped[1], clamped[2]);
+      if (hsv[2] > 0.02){
+        let dHue = 0, sScale = 1, vScale = 1, wSum = 0;
+        for (let ci = 0; ci < 8; ci++){
+          const shift = state.hsl[ci];
+          if (!shift.h && !shift.s && !shift.l) continue;
+          const w = bandWeight(hsv[0], HSL_CHANNELS[ci][1]);
+          if (w <= 0) continue;
+          wSum += w; dHue += w * shift.h * 30; sScale += w * shift.s; vScale += w * shift.l;
+        }
+        if (wSum > 0){
+          const nh = (hsv[0] + dHue / wSum + 360) % 360;
+          const ns = Math.min(1, Math.max(0, hsv[1] * sScale));
+          const nv = Math.min(1, Math.max(0, hsv[2] * vScale));
+          const out = hsvToRgb(nh, ns, nv);
+          r = out[0]; g = out[1]; b = out[2];
+        }
+      }
+    }
     d[i]   = r < 0 ? 0 : r > 255 ? 255 : r;
     d[i+1] = g < 0 ? 0 : g > 255 ? 255 : g;
     d[i+2] = b < 0 ? 0 : b > 255 ? 255 : b;
@@ -298,7 +393,7 @@ $("stage").addEventListener("drop", e => {
 });
 
 /* ------------------------------------------------------------------ ui */
-const TABS = ["Crop","Adjust","Filters","Markup","Export"];
+const TABS = ["Crop","Adjust","Curves","HSL","Filters","Markup","Export"];
 function buildTabs(){
   const wrap = $("tabs");
   wrap.innerHTML = "";
@@ -348,6 +443,88 @@ function chipRow(items, current, onPick){
   return row;
 }
 
+
+function drawCurve(cv){
+  const c = cv.getContext("2d");
+  const W = cv.width, H = cv.height;
+  c.clearRect(0, 0, W, H);
+  c.fillStyle = "#0a0a0c";
+  c.fillRect(0, 0, W, H);
+  c.strokeStyle = "#2a2a2e";
+  c.lineWidth = 1;
+  for (let i = 1; i < 4; i++){
+    c.beginPath(); c.moveTo((W * i) / 4, 0); c.lineTo((W * i) / 4, H); c.stroke();
+    c.beginPath(); c.moveTo(0, (H * i) / 4); c.lineTo(W, (H * i) / 4); c.stroke();
+  }
+  const lut = curveLut(state.curve);
+  c.strokeStyle = "#00e0b2";
+  c.lineWidth = 2;
+  c.beginPath();
+  for (let i = 0; i < 256; i++){
+    const x = (W * i) / 255;
+    const y = H - (lut[i] / 255) * H;
+    if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+  }
+  c.stroke();
+  state.curve.forEach((v, i) => {
+    const x = (W * i) / (state.curve.length - 1);
+    const y = H - v * H;
+    c.beginPath(); c.arc(x, y, 6, 0, Math.PI * 2);
+    c.fillStyle = "#fff"; c.fill();
+    c.beginPath(); c.arc(x, y, 3.4, 0, Math.PI * 2);
+    c.fillStyle = "#00e0b2"; c.fill();
+  });
+}
+
+function attachCurveDrag(cv){
+  let idx = -1;
+  const pointFrom = ev => {
+    const r = cv.getBoundingClientRect();
+    const x = (ev.clientX - r.left) / r.width;
+    const y = (ev.clientY - r.top) / r.height;
+    return [Math.min(1, Math.max(0, x)), Math.min(1, Math.max(0, 1 - y))];
+  };
+  cv.addEventListener("pointerdown", ev => {
+    const [x] = pointFrom(ev);
+    idx = Math.round(x * (state.curve.length - 1));
+    pushUndo();
+    cv.setPointerCapture(ev.pointerId);
+  });
+  cv.addEventListener("pointermove", ev => {
+    if (idx < 0) return;
+    const [, y] = pointFrom(ev);
+    state.curve[idx] = y;
+    drawCurve(cv);
+    schedule();
+  });
+  ["pointerup", "pointercancel"].forEach(e => cv.addEventListener(e, () => { idx = -1; }));
+}
+
+function hslSlider(label, channel, prop){
+  const wrap = document.createElement("div");
+  wrap.className = "slider";
+  const lbl = document.createElement("div");
+  lbl.className = "lbl";
+  const v = state.hsl[channel][prop];
+  lbl.innerHTML = "<span>" + label + "</span><b>" + Math.round(v * 100) + "</b>";
+  const input = document.createElement("input");
+  input.type = "range"; input.min = -1; input.max = 1; input.step = 0.01; input.value = v;
+  input.onpointerdown = () => pushUndo();
+  input.oninput = () => {
+    state.hsl[channel][prop] = parseFloat(input.value);
+    lbl.querySelector("b").textContent = Math.round(state.hsl[channel][prop] * 100);
+    schedule();
+  };
+  lbl.onclick = () => {
+    pushUndo(); state.hsl[channel][prop] = 0; input.value = 0;
+    lbl.querySelector("b").textContent = "0"; schedule();
+  };
+  wrap.append(lbl, input);
+  return wrap;
+}
+
+let hslChannel = 0;
+
 function buildPanel(){
   const p = $("panel");
   p.innerHTML = "";
@@ -376,6 +553,46 @@ function buildPanel(){
     p.appendChild(slider("Shadows","shadows",-1,1,.01));
     p.appendChild(slider("Saturation","saturation",-1,1,.01));
     p.appendChild(slider("Warmth","warmth",-1,1,.01));
+  }
+  if (activeTab === "Curves"){
+    const wrap = document.createElement("div");
+    wrap.className = "curve-wrap";
+    const cv = document.createElement("canvas");
+    cv.width = 300; cv.height = 170; cv.className = "curve-canvas";
+    wrap.appendChild(cv);
+    p.appendChild(wrap);
+    drawCurve(cv);
+    attachCurveDrag(cv);
+    const row = document.createElement("div");
+    row.className = "chips";
+    const reset = document.createElement("button");
+    reset.className = "chip"; reset.textContent = "Reset curve";
+    reset.onclick = () => { pushUndo(); state.curve = [0, .25, .5, .75, 1]; buildPanel(); schedule(); };
+    row.appendChild(reset);
+    p.appendChild(row);
+    const note = document.createElement("p");
+    note.className = "note";
+    note.textContent = "Drag a point up or down. The curve is baked into a 256-step lookup and applied in the same pass as the sliders.";
+    p.appendChild(note);
+  }
+  if (activeTab === "HSL"){
+    const row = document.createElement("div");
+    row.className = "chips";
+    HSL_CHANNELS.forEach(([name], i) => {
+      const b = document.createElement("button");
+      b.className = "chip" + (hslChannel === i ? " sel" : "");
+      b.textContent = name;
+      b.onclick = () => { hslChannel = i; buildPanel(); };
+      row.appendChild(b);
+    });
+    p.appendChild(row);
+    p.appendChild(hslSlider("Hue", hslChannel, "h"));
+    p.appendChild(hslSlider("Saturation", hslChannel, "s"));
+    p.appendChild(hslSlider("Luminance", hslChannel, "l"));
+    const note = document.createElement("p");
+    note.className = "note";
+    note.textContent = "Selective colour: only pixels near this hue are affected, so a blue sky can change without touching skin or walls.";
+    p.appendChild(note);
   }
   if (activeTab === "Filters"){
     const names = [["none","Original"],["mono","Mono"],["noir","Noir"],["warm","Warm"],["cool","Cool"],["vivid","Vivid"],["fade","Fade"],["sepia","Sepia"],["matte","Matte"]];

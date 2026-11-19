@@ -73,3 +73,6 @@
   .toast.show{opacity:1}
   @media (max-width:520px){ .top{gap:4px;padding:8px 8px} .tbtn{padding:6px 7px;font-size:11.5px} .brand{font-size:12.5px} .brand svg{width:18px;height:18px} .tbtn.primary{padding:6px 11px} }
   @media (min-width:900px){ .dock{max-height:40dvh} }
+
+.curve-wrap{ background:#0a0a0c; border:1px solid var(--line); border-radius:12px; padding:8px; margin:6px 0 10px; }
+.curve-canvas{ width:100%; height:auto; display:block; touch-action:none; border-radius:8px; }
