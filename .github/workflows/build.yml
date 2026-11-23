@@ -23,8 +23,15 @@ jobs:
           java-version: "17"
           cache: gradle
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Install Android platform
+        run: |
+          # The runner image already ships the Android SDK; the setup-android
+          # action tries to install the retired "tools" package and fails, so
+          # call sdkmanager directly for the two packages we actually need.
+          SDKMANAGER="${ANDROID_HOME:-$ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then SDKMANAGER="$(command -v sdkmanager)"; fi
+          yes | "$SDKMANAGER" --install "platforms;android-35" "build-tools;35.0.0" > /dev/null
+          echo "android platform 35 ready"
 
       - name: Is a signing key configured?
         id: key
