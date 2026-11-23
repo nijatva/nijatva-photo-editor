@@ -122,9 +122,15 @@ APK always made by Vasudev Dangaya.
 
 ## Web app
 
-`web/` is the source of the browser editor (plain HTML/CSS/JS, no build step) and
-`docs/app/` is the copy that GitHub Pages serves. **Push both together** — Pages
-serves `docs/`, so editing only `web/` leaves the live site on the old version.
+`web/` is the source of the browser editor (plain HTML/CSS/JS, no build step).
+The published copy lives in the suite repository, so its URL is the short one:
+
+    source      web/                                  (this repo)
+    published   nijatva/nijatva.github.io → editor/    → https://nijatva.github.io/editor/
+
+Copy `web/*` into that repository's `editor/` folder (and bump the cache name in
+`sw.js`) whenever the shell changes. `docs/app/` and `docs/app.html` here are only
+redirects to the suite URL now.
 
 ```
 web/                docs/
