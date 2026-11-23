@@ -156,6 +156,9 @@ data class EditState(
     val grain: Float = 0f,
     val vignette: Float = 0f,
     val curve: List<Float> = DEFAULT_CURVE,
+    val curveR: List<Float> = DEFAULT_CURVE,
+    val curveG: List<Float> = DEFAULT_CURVE,
+    val curveB: List<Float> = DEFAULT_CURVE,
     val hsl: List<HslShift> = List(HSL_CENTERS.size) { HslShift() },
     val filter: FilterPreset = FilterPreset.NONE,
     val layers: List<Layer> = emptyList(),
@@ -170,6 +173,7 @@ data class EditState(
 
     val needsPixelWork: Boolean
         get() = curve != DEFAULT_CURVE ||
+            curveR != DEFAULT_CURVE || curveG != DEFAULT_CURVE || curveB != DEFAULT_CURVE ||
             hsl.any { !it.isNeutral } ||
             highlights != 0f || shadows != 0f || vibrance != 0f ||
             clarity != 0f || sharpen != 0f || grain != 0f || vignette != 0f

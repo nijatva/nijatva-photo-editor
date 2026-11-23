@@ -38,6 +38,9 @@ object AdvancedOps {
         }
 
         val lut = buildCurveLut(state.curve)
+        val lutR = buildCurveLut(state.curveR)
+        val lutG = buildCurveLut(state.curveG)
+        val lutB = buildCurveLut(state.curveB)
         val hsl = state.hsl
         val anyHsl = hsl.any { !it.isNeutral }
         val invDiag = 1f / sqrt((w * w + h * h).toFloat())
@@ -51,10 +54,14 @@ object AdvancedOps {
                 var b = (c and 0xFF).toFloat()
 
                 if (lut != null) {
-                    r = lut[r.toInt()].toFloat()
-                    g = lut[g.toInt()].toFloat()
-                    b = lut[b.toInt()].toFloat()
+                    r = lut[r.toInt().coerceIn(0, 255)].toFloat()
+                    g = lut[g.toInt().coerceIn(0, 255)].toFloat()
+                    b = lut[b.toInt().coerceIn(0, 255)].toFloat()
                 }
+                // per-channel curves, after the master curve
+                if (lutR != null) r = lutR[clamp255(r)].toFloat()
+                if (lutG != null) g = lutG[clamp255(g)].toFloat()
+                if (lutB != null) b = lutB[clamp255(b)].toFloat()
 
                 val lum = (0.299f * r + 0.587f * g + 0.114f * b) / 255f
 

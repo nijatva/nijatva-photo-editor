@@ -134,6 +134,7 @@ fun EditorScreen(uri: Uri, onBack: () -> Unit) {
     var brushColor by remember { mutableStateOf(BRUSH_COLORS[0]) }
     var brushSize by remember { mutableStateOf(0.02f) }
     var hslChannel by remember { mutableStateOf(0) }
+    var curveChannel by remember { mutableStateOf(0) }
     var showHistogram by remember { mutableStateOf(false) }
     var liveStroke by remember { mutableStateOf<List<Pair<Float, Float>>?>(null) }
     var textAt by remember { mutableStateOf<Pair<Float, Float>?>(null) }
@@ -581,11 +582,36 @@ fun EditorScreen(uri: Uri, onBack: () -> Unit) {
                     )
 
                     EditorTab.CURVES -> CurvePanel(
-                        curve = state.curve,
-                        onLive = { history.update(state.copy(curve = it)) },
+                        curve = when (curveChannel) {
+                            1 -> state.curveR
+                            2 -> state.curveG
+                            3 -> state.curveB
+                            else -> state.curve
+                        },
+                        channel = curveChannel,
+                        onChannel = { curveChannel = it },
+                        onLive = { next ->
+                            history.update(
+                                when (curveChannel) {
+                                    1 -> state.copy(curveR = next)
+                                    2 -> state.copy(curveG = next)
+                                    3 -> state.copy(curveB = next)
+                                    else -> state.copy(curve = next)
+                                }
+                            )
+                        },
                         onBegin = { beginDrag() },
                         onEnd = { endDrag() },
-                        onReset = { history.apply(state.copy(curve = DEFAULT_CURVE)) }
+                        onReset = {
+                            history.apply(
+                                state.copy(
+                                    curve = DEFAULT_CURVE,
+                                    curveR = DEFAULT_CURVE,
+                                    curveG = DEFAULT_CURVE,
+                                    curveB = DEFAULT_CURVE
+                                )
+                            )
+                        }
                     )
 
                     EditorTab.HSL -> HslPanel(

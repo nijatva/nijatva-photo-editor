@@ -284,6 +284,8 @@ fun centered(aspect: Float, current: CropRect): CropRect {
 @Composable
 fun CurvePanel(
     curve: List<Float>,
+    channel: Int,
+    onChannel: (Int) -> Unit,
     onLive: (List<Float>) -> Unit,
     onBegin: () -> Unit,
     onEnd: () -> Unit,
@@ -291,8 +293,26 @@ fun CurvePanel(
 ) {
     val latest = rememberUpdatedState(curve)
     var dragIdx by remember { mutableStateOf(-1) }
+    val curveTint = when (channel) {
+        1 -> Color(0xFFFF5252)
+        2 -> Color(0xFF69F0AE)
+        3 -> Color(0xFF448AFF)
+        else -> NijatvaTeal
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Chip("Master", channel == 0) { onChannel(0) }
+            Chip("Red", channel == 1) { onChannel(1) }
+            Chip("Green", channel == 2) { onChannel(2) }
+            Chip("Blue", channel == 3) { onChannel(3) }
+        }
+        Spacer(Modifier.height(6.dp))
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
@@ -334,12 +354,12 @@ fun CurvePanel(
                 val y = size.height * (1f - lut[i] / 255f)
                 if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
             }
-            drawPath(path, NijatvaTeal, style = Stroke(2f))
+            drawPath(path, curveTint, style = Stroke(2f))
             curve.forEachIndexed { i, v ->
                 val x = size.width * i / (curve.size - 1).toFloat()
                 val y = size.height * (1f - v)
                 drawCircle(Color.White, 7f, Offset(x, y))
-                drawCircle(NijatvaTeal, 4f, Offset(x, y))
+                drawCircle(curveTint, 4f, Offset(x, y))
             }
         }
         Spacer(Modifier.height(6.dp))
