@@ -43,6 +43,26 @@ object Pipeline {
             bmp = straighten(bmp, state.straighten)
         }
 
+        // keystone: the four dragged corners are mapped onto the full frame
+        if (state.hasPerspective) {
+            val w = bmp.width
+            val h = bmp.height
+            val q = state.quad
+            val from = floatArrayOf(
+                q[0] * w, q[1] * h,
+                q[2] * w, q[3] * h,
+                q[4] * w, q[5] * h,
+                q[6] * w, q[7] * h
+            )
+            val to = floatArrayOf(0f, 0f, w.toFloat(), 0f, w.toFloat(), h.toFloat(), 0f, h.toFloat())
+            val warp = Matrix()
+            if (warp.setPolyToPoly(from, 0, to, 0, 4)) {
+                val fixed = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                Canvas(fixed).drawBitmap(bmp, warp, Paint(Paint.FILTER_BITMAP_FLAG))
+                bmp = fixed
+            }
+        }
+
         val crop = state.crop
         if (crop != CropRect() && bmp.width > 2 && bmp.height > 2) {
             val w = bmp.width

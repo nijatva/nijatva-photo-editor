@@ -175,4 +175,6 @@
     <string name="auto_tone">ऑटो</string>
     <string name="auto_straighten">ऑटो सीधा करें</string>
     <string name="auto_hint">ऑटो इस फ़ोटो का हिस्टोग्राम पढ़ता है: एक्सपोज़र, कॉन्ट्रास्ट, हाइलाइट/शैडो रिकवरी और वाइट बैलेंस। अनडू से वापस आ जाएगा।</string>
+    <string name="perspective">परस्पेक्टिव</string>
+    <string name="perspective_hint">चारों कोनों को इमारत के सीधे किनारों पर खींचें, फिर परस्पेक्टिव बंद कर दें।</string>
 </resources>

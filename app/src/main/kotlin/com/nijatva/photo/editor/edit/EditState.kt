@@ -153,12 +153,16 @@ val HSL_CENTERS = listOf(
 
 val DEFAULT_CURVE = listOf(0f, 0.25f, 0.5f, 0.75f, 1f)
 
+/** Four corners (TL, TR, BR, BL) as normalised x/y pairs — the identity quad. */
+val DEFAULT_QUAD = listOf(0f, 0f, 1f, 0f, 1f, 1f, 0f, 1f)
+
 data class EditState(
     val rotation: Int = 0,
     val flipH: Boolean = false,
     val flipV: Boolean = false,
     val straighten: Float = 0f,
     val crop: CropRect = CropRect(),
+    val quad: List<Float> = DEFAULT_QUAD,
     val exposure: Float = 0f,
     val contrast: Float = 0f,
     val highlights: Float = 0f,
@@ -180,6 +184,9 @@ data class EditState(
     val layers: List<Layer> = emptyList(),
     val localAdjusts: List<LocalAdjustLayer> = emptyList()
 ) {
+    val hasPerspective: Boolean
+        get() = quad.size == 8 && quad != DEFAULT_QUAD
+
     val isDefault: Boolean get() = this == EditState()
 
     val hasLocalEdits: Boolean get() = localAdjusts.isNotEmpty()

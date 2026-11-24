@@ -175,4 +175,6 @@
     <string name="auto_tone">Auto</string>
     <string name="auto_straighten">Auto straighten</string>
     <string name="auto_hint">Auto reads the histogram of this photo: exposure, contrast, highlight/shadow recovery and white balance. Undo brings you back.</string>
+    <string name="perspective">Perspective</string>
+    <string name="perspective_hint">Drag the four corners onto the straight edges of the building, then turn Perspective off.</string>
 </resources>

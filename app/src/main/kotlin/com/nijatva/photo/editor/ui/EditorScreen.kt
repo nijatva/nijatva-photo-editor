@@ -78,6 +78,7 @@ import com.nijatva.photo.editor.edit.AdvancedOps
 import com.nijatva.photo.editor.edit.AutoOps
 import com.nijatva.photo.editor.edit.CropRect
 import com.nijatva.photo.editor.edit.DEFAULT_CURVE
+import com.nijatva.photo.editor.edit.DEFAULT_QUAD
 import com.nijatva.photo.editor.edit.EditState
 import com.nijatva.photo.editor.edit.ExifSummary
 import com.nijatva.photo.editor.edit.Exporter
@@ -148,6 +149,7 @@ fun EditorScreen(uri: Uri, onBack: () -> Unit) {
     var splitX by remember { mutableStateOf(0.5f) }
     var outScale by remember { mutableStateOf(1f) }
     var maxEdge by remember { mutableStateOf(0) }
+    var perspectiveMode by remember { mutableStateOf(false) }
     var localExposure by remember { mutableStateOf(0f) }
     var localSaturation by remember { mutableStateOf(0f) }
     var localWarmth by remember { mutableStateOf(0f) }
@@ -507,7 +509,14 @@ fun EditorScreen(uri: Uri, onBack: () -> Unit) {
                         )
                     }
 
-                    if (tab == EditorTab.CROP) {
+                    if (tab == EditorTab.CROP && perspectiveMode) {
+                        PerspectiveOverlay(
+                            quad = state.quad,
+                            onChange = { q -> history.update(history.state.copy(quad = q)) },
+                            onBegin = { beginDrag() },
+                            onEnd = { endDrag() }
+                        )
+                    } else if (tab == EditorTab.CROP) {
                         CropOverlay(
                             crop = state.crop,
                             onChange = { rect -> history.update(history.state.copy(crop = rect)) },
@@ -576,6 +585,11 @@ fun EditorScreen(uri: Uri, onBack: () -> Unit) {
                                 val tilt = AutoOps.analyse(bmp).straighten
                                 history.apply(state.copy(straighten = tilt))
                             }
+                        },
+                        perspectiveMode = perspectiveMode,
+                        onPerspectiveMode = { perspectiveMode = it },
+                        onResetPerspective = {
+                            history.apply(state.copy(quad = DEFAULT_QUAD))
                         }
                     )
 

@@ -236,7 +236,10 @@ fun CropPanel(
     onLive: (EditState) -> Unit,
     onBegin: () -> Unit,
     onEnd: () -> Unit,
-    onAutoStraighten: () -> Unit
+    onAutoStraighten: () -> Unit,
+    perspectiveMode: Boolean,
+    onPerspectiveMode: (Boolean) -> Unit,
+    onResetPerspective: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -244,6 +247,12 @@ fun CropPanel(
                 onApply(state.copy(rotation = (state.rotation + 270) % 360))
             }
             Chip(stringResource(R.string.auto_straighten), false) { onAutoStraighten() }
+            Chip(stringResource(R.string.perspective), perspectiveMode) {
+                onPerspectiveMode(!perspectiveMode)
+            }
+            if (perspectiveMode && state.hasPerspective) {
+                Chip(stringResource(R.string.reset), false) { onResetPerspective() }
+            }
             Chip(stringResource(R.string.rotate_right), false) {
                 onApply(state.copy(rotation = (state.rotation + 90) % 360))
             }
@@ -967,6 +976,91 @@ fun normalize(pos: Offset, size: IntSize): Pair<Float, Float> = Pair(
     (pos.x / size.width.toFloat()).coerceIn(0f, 1f),
     (pos.y / size.height.toFloat()).coerceIn(0f, 1f)
 )
+
+
+@Composable
+fun PerspectiveOverlay(
+    quad: List<Float>,
+    onChange: (List<Float>) -> Unit,
+    onBegin: () -> Unit,
+    onEnd: () -> Unit
+) {
+    val latest = rememberUpdatedState(quad)
+    var dragIdx by remember { mutableStateOf(-1) }
+
+    Canvas(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = { pos ->
+                        onBegin()
+                        val q = latest.value
+                        val nx = pos.x / size.width
+                        val ny = pos.y / size.height
+                        var best = -1
+                        var bestD = 0.14f
+                        for (i in 0 until 4) {
+                            val d = maxOf(abs(nx - q[i * 2]), abs(ny - q[i * 2 + 1]))
+                            if (d < bestD) {
+                                bestD = d
+                                best = i
+                            }
+                        }
+                        dragIdx = best
+                    },
+                    onDrag = { change, drag ->
+                        val q = latest.value
+                        if (dragIdx in 0 until 4 && q.size == 8) {
+                            val next = q.toMutableList()
+                            next[dragIdx * 2] = (next[dragIdx * 2] + drag.x / size.width).coerceIn(0f, 1f)
+                            next[dragIdx * 2 + 1] =
+                                (next[dragIdx * 2 + 1] + drag.y / size.height).coerceIn(0f, 1f)
+                            onChange(next.toList())
+                        }
+                        change.consume()
+                    },
+                    onDragEnd = { dragIdx = -1; onEnd() },
+                    onDragCancel = { dragIdx = -1; onEnd() }
+                )
+            }
+    ) {
+        val q = latest.value
+        if (q.size != 8) return@Canvas
+        fun px(i: Int) = q[i * 2] * size.width
+        fun py(i: Int) = q[i * 2 + 1] * size.height
+
+        val path = Path().apply {
+            moveTo(px(0), py(0))
+            lineTo(px(1), py(1))
+            lineTo(px(2), py(2))
+            lineTo(px(3), py(3))
+            close()
+        }
+        drawPath(path, Color.White, style = Stroke(2f))
+
+        // thirds inside the quad, so straightening is judged against the frame
+        val grid = Color.White.copy(alpha = 0.28f)
+        for (t in listOf(0.33f, 0.66f)) {
+            val topX = px(0) + (px(1) - px(0)) * t
+            val topY = py(0) + (py(1) - py(0)) * t
+            val botX = px(3) + (px(2) - px(3)) * t
+            val botY = py(3) + (py(2) - py(3)) * t
+            drawLine(grid, Offset(topX, topY), Offset(botX, botY), 1f)
+
+            val leftX = px(0) + (px(3) - px(0)) * t
+            val leftY = py(0) + (py(3) - py(0)) * t
+            val rightX = px(1) + (px(2) - px(1)) * t
+            val rightY = py(1) + (py(2) - py(1)) * t
+            drawLine(grid, Offset(leftX, leftY), Offset(rightX, rightY), 1f)
+        }
+
+        for (i in 0 until 4) {
+            drawCircle(Color.White, 10f, Offset(px(i), py(i)))
+            drawCircle(NijatvaTeal, 6f, Offset(px(i), py(i)))
+        }
+    }
+}
 
 @Composable
 fun CropOverlay(
