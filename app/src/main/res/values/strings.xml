@@ -167,4 +167,9 @@
         <item quantity="other">%1$d files deleted</item>
     </plurals>
 
+    <string name="save_look">Save look</string>
+    <string name="preset_name">Preset name</string>
+    <string name="preset_name_hint">e.g. Warm dusk</string>
+    <string name="delete_preset">Delete</string>
+    <string name="saved_looks">Saved looks</string>
 </resources>

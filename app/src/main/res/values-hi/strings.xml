@@ -167,4 +167,9 @@
         <item quantity="other">%1$d फ़ाइलें हटाई गईं</item>
     </plurals>
 
+    <string name="save_look">लुक सेव करें</string>
+    <string name="preset_name">प्रीसेट का नाम</string>
+    <string name="preset_name_hint">जैसे गर्म शाम</string>
+    <string name="delete_preset">हटाएँ</string>
+    <string name="saved_looks">सेव किए लुक</string>
 </resources>

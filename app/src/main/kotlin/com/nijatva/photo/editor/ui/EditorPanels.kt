@@ -707,7 +707,15 @@ fun MarkupPanel(
 }
 
 @Composable
-fun FilterPanel(state: EditState, onPick: (FilterPreset) -> Unit) {
+fun FilterPanel(
+    state: EditState,
+    lookNames: List<String>,
+    selectedLook: String?,
+    onPick: (FilterPreset) -> Unit,
+    onSaveLook: () -> Unit,
+    onApplyLook: (String) -> Unit,
+    onDeleteLook: (String) -> Unit
+) {
     val presets = listOf(
         FilterPreset.NONE to stringResource(R.string.filter_none),
         FilterPreset.MONO to stringResource(R.string.filter_mono),
@@ -731,6 +739,29 @@ fun FilterPanel(state: EditState, onPick: (FilterPreset) -> Unit) {
     ) {
         presets.forEach { (preset, label) ->
             Chip(label, state.filter == preset) { onPick(preset) }
+        }
+    }
+
+    Spacer(Modifier.height(12.dp))
+    Text(
+        stringResource(R.string.saved_looks),
+        color = TextSecondary,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Medium
+    )
+    Spacer(Modifier.height(6.dp))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Chip(stringResource(R.string.save_look), false) { onSaveLook() }
+        lookNames.forEach { name ->
+            Chip(name, name == selectedLook) { onApplyLook(name) }
+        }
+        if (selectedLook != null) {
+            Chip(stringResource(R.string.delete_preset), false) { onDeleteLook(selectedLook) }
         }
     }
 }

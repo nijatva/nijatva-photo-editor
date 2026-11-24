@@ -121,6 +121,10 @@ fun EditorScreen(uri: Uri, onBack: () -> Unit) {
     var tab by remember { mutableStateOf(EditorTab.ADJUST) }
     var comparing by remember { mutableStateOf(false) }
     var showExif by remember { mutableStateOf(false) }
+    var looks by remember { mutableStateOf(PresetStore.load(context)) }
+    var selectedLook by remember { mutableStateOf<String?>(null) }
+    var showSaveLook by remember { mutableStateOf(false) }
+    var lookName by remember { mutableStateOf("") }
     var exifRows by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
     var message by remember { mutableStateOf<String?>(null) }
     var saving by remember { mutableStateOf(false) }
@@ -674,9 +678,27 @@ fun EditorScreen(uri: Uri, onBack: () -> Unit) {
                         }
                     )
 
-                    EditorTab.FILTERS -> FilterPanel(state) { preset ->
-                        history.apply(state.copy(filter = preset))
-                    }
+                    EditorTab.FILTERS -> FilterPanel(
+                        state = state,
+                        lookNames = looks.map { it.name },
+                        selectedLook = selectedLook,
+                        onPick = { preset -> history.apply(state.copy(filter = preset)) },
+                        onSaveLook = {
+                            lookName = ""
+                            showSaveLook = true
+                        },
+                        onApplyLook = { name ->
+                            val preset = looks.firstOrNull { it.name == name }
+                            if (preset != null) {
+                                history.apply(PresetStore.apply(preset.json, state))
+                                selectedLook = name
+                            }
+                        },
+                        onDeleteLook = { name ->
+                            looks = PresetStore.delete(context, name)
+                            if (selectedLook == name) selectedLook = null
+                        }
+                    )
 
                     EditorTab.EXPORT -> ExportPanel(
                         format = format,
@@ -728,6 +750,38 @@ fun EditorScreen(uri: Uri, onBack: () -> Unit) {
             },
             dismissButton = {
                 TextButton(onClick = { textAt = null }) {
+                    Text(stringResource(R.string.cancel), color = TextSecondary)
+                }
+            }
+        )
+    }
+
+    if (showSaveLook) {
+        AlertDialog(
+            onDismissRequest = { showSaveLook = false },
+            containerColor = Surface2,
+            title = { Text(stringResource(R.string.preset_name), color = TextPrimary) },
+            text = {
+                OutlinedTextField(
+                    value = lookName,
+                    onValueChange = { lookName = it },
+                    placeholder = {
+                        Text(stringResource(R.string.preset_name_hint), color = TextSecondary)
+                    },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (lookName.isNotBlank()) {
+                        looks = PresetStore.upsert(context, lookName, state)
+                        selectedLook = lookName.trim()
+                    }
+                    showSaveLook = false
+                }) { Text(stringResource(R.string.save_look), color = NijatvaTeal) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSaveLook = false }) {
                     Text(stringResource(R.string.cancel), color = TextSecondary)
                 }
             }
