@@ -172,4 +172,7 @@
     <string name="preset_name_hint">जैसे गर्म शाम</string>
     <string name="delete_preset">हटाएँ</string>
     <string name="saved_looks">सेव किए लुक</string>
+    <string name="auto_tone">ऑटो</string>
+    <string name="auto_straighten">ऑटो सीधा करें</string>
+    <string name="auto_hint">ऑटो इस फ़ोटो का हिस्टोग्राम पढ़ता है: एक्सपोज़र, कॉन्ट्रास्ट, हाइलाइट/शैडो रिकवरी और वाइट बैलेंस। अनडू से वापस आ जाएगा।</string>
 </resources>

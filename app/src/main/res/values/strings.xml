@@ -172,4 +172,7 @@
     <string name="preset_name_hint">e.g. Warm dusk</string>
     <string name="delete_preset">Delete</string>
     <string name="saved_looks">Saved looks</string>
+    <string name="auto_tone">Auto</string>
+    <string name="auto_straighten">Auto straighten</string>
+    <string name="auto_hint">Auto reads the histogram of this photo: exposure, contrast, highlight/shadow recovery and white balance. Undo brings you back.</string>
 </resources>

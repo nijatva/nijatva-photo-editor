@@ -75,6 +75,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.nijatva.photo.editor.R
 import com.nijatva.photo.editor.edit.AdvancedOps
+import com.nijatva.photo.editor.edit.AutoOps
 import com.nijatva.photo.editor.edit.CropRect
 import com.nijatva.photo.editor.edit.DEFAULT_CURVE
 import com.nijatva.photo.editor.edit.EditState
@@ -568,14 +569,34 @@ fun EditorScreen(uri: Uri, onBack: () -> Unit) {
                         onApply = { history.apply(it) },
                         onLive = { history.update(it) },
                         onBegin = { beginDrag() },
-                        onEnd = { endDrag() }
+                        onEnd = { endDrag() },
+                        onAutoStraighten = {
+                            preview?.let { bmp ->
+                                val tilt = AutoOps.analyse(bmp).straighten
+                                history.apply(state.copy(straighten = tilt))
+                            }
+                        }
                     )
 
                     EditorTab.ADJUST -> AdjustPanel(
                         state = state,
                         onLive = { history.update(it) },
                         onBegin = { beginDrag() },
-                        onEnd = { endDrag() }
+                        onEnd = { endDrag() },
+                        onAuto = {
+                            preview?.let { bmp ->
+                                val s = AutoOps.analyse(bmp)
+                                history.apply(
+                                    state.copy(
+                                        exposure = s.exposure,
+                                        contrast = s.contrast,
+                                        highlights = s.highlights,
+                                        shadows = s.shadows,
+                                        warmth = s.warmth
+                                    )
+                                )
+                            }
+                        }
                     )
 
                     EditorTab.DETAIL -> DetailPanel(

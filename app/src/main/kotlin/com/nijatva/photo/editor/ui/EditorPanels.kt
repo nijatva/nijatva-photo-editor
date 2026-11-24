@@ -156,13 +156,28 @@ fun AdjustPanel(
     state: EditState,
     onLive: (EditState) -> Unit,
     onBegin: () -> Unit,
-    onEnd: () -> Unit
+    onEnd: () -> Unit,
+    onAuto: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Chip(stringResource(R.string.auto_tone), false) { onAuto() }
+            Text(
+                stringResource(R.string.auto_hint),
+                color = TextSecondary,
+                fontSize = 10.sp,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Spacer(Modifier.height(8.dp))
         ValueSlider(stringResource(R.string.exposure), state.exposure, -1f..1f,
             { onLive(state.copy(exposure = it)) }, onBegin, onEnd)
         ValueSlider(stringResource(R.string.contrast), state.contrast, -1f..1f,
@@ -220,13 +235,15 @@ fun CropPanel(
     onApply: (EditState) -> Unit,
     onLive: (EditState) -> Unit,
     onBegin: () -> Unit,
-    onEnd: () -> Unit
+    onEnd: () -> Unit,
+    onAutoStraighten: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Chip(stringResource(R.string.rotate_left), false) {
                 onApply(state.copy(rotation = (state.rotation + 270) % 360))
             }
+            Chip(stringResource(R.string.auto_straighten), false) { onAutoStraighten() }
             Chip(stringResource(R.string.rotate_right), false) {
                 onApply(state.copy(rotation = (state.rotation + 90) % 360))
             }
