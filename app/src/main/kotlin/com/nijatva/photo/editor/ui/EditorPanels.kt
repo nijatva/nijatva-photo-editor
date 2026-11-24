@@ -498,6 +498,10 @@ fun LocalPanel(
                 { v -> onEdit { it.copy(saturation = v) } }, onBegin, onFinish)
             ValueSlider(stringResource(R.string.warmth), selected.warmth, -1f..1f,
                 { v -> onEdit { it.copy(warmth = v) } }, onBegin, onFinish)
+            ValueSlider(stringResource(R.string.tint), selected.tint, -1f..1f,
+                { v -> onEdit { it.copy(tint = v) } }, onBegin, onFinish)
+            ValueSlider(stringResource(R.string.clarity), selected.clarity, -1f..1f,
+                { v -> onEdit { it.copy(clarity = v) } }, onBegin, onFinish)
 
             if (selected.kind == MaskKind.LIGHT) {
                 val centre = (selected.lo + selected.hi) / 2f

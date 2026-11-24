@@ -66,11 +66,14 @@ data class LocalAdjustLayer(
     val highlights: Float = 0f,
     val shadows: Float = 0f,
     val saturation: Float = 0f,
-    val warmth: Float = 0f
+    val warmth: Float = 0f,
+    val clarity: Float = 0f,
+    val tint: Float = 0f
 ) : Layer {
     val isNoop: Boolean
         get() = exposure == 0f && contrast == 0f && highlights == 0f &&
-            shadows == 0f && saturation == 0f && warmth == 0f
+            shadows == 0f && saturation == 0f && warmth == 0f &&
+            clarity == 0f && tint == 0f
 
     fun matrix(): ColorMatrix {
         val out = ColorMatrix()
@@ -110,6 +113,19 @@ data class LocalAdjustLayer(
                         1f, 0f, 0f, 0f, w,
                         0f, 1f, 0f, 0f, 0f,
                         0f, 0f, 1f, 0f, -w,
+                        0f, 0f, 0f, 1f, 0f
+                    )
+                )
+            )
+        }
+        if (tint != 0f) {
+            val t = tint * 40f
+            out.postConcat(
+                ColorMatrix(
+                    floatArrayOf(
+                        1f, 0f, 0f, 0f, t,
+                        0f, 1f, 0f, 0f, 0f,
+                        0f, 0f, 1f, 0f, -t,
                         0f, 0f, 0f, 1f, 0f
                     )
                 )

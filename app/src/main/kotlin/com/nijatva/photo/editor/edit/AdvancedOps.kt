@@ -498,6 +498,13 @@ object AdvancedOps {
         val gradedPx = IntArray(w * h)
         src.getPixels(basePx, 0, w, 0, 0, w, h)
         graded.getPixels(gradedPx, 0, w, 0, 0, w, h)
+        // local contrast for this mask only: graded minus its own blur, added back
+        val blurred = if (layer.clarity != 0f) {
+            val radius = maxOf(4, minOf(w, h) / 60)
+            boxBlur(gradedPx, w, h, radius)
+        } else {
+            null
+        }
         val outPx = IntArray(w * h)
 
         for (i in basePx.indices) {
@@ -507,6 +514,16 @@ object AdvancedOps {
             var r = ((g shr 16) and 0xFF).toFloat()
             var gg = ((g shr 8) and 0xFF).toFloat()
             var b = (g and 0xFF).toFloat()
+
+            if (blurred != null) {
+                val bp = blurred[i]
+                val br0 = ((bp shr 16) and 0xFF).toFloat()
+                val bg0 = ((bp shr 8) and 0xFF).toFloat()
+                val bb0 = (bp and 0xFF).toFloat()
+                r += (r - br0) * layer.clarity * 1.4f
+                gg += (gg - bg0) * layer.clarity * 1.4f
+                b += (b - bb0) * layer.clarity * 1.4f
+            }
 
             if (layer.highlights != 0f || layer.shadows != 0f) {
                 val lum = (0.299f * r + 0.587f * gg + 0.114f * b) / 255f
