@@ -170,7 +170,8 @@ object Exporter {
         quality: Int,
         stripExif: Boolean,
         sourceUri: Uri?,
-        scale: Float = 1f
+        scale: Float = 1f,
+        maxEdge: Int = 0
     ): Output? {
         val compress = when (format) {
             "PNG" -> Bitmap.CompressFormat.PNG
@@ -190,9 +191,14 @@ object Exporter {
         }
         val name = "Nijatva_" + System.currentTimeMillis() + "." + ext
 
-        val target = if (scale < 0.999f) {
-            val w = (bitmap.width * scale).toInt().coerceAtLeast(1)
-            val h = (bitmap.height * scale).toInt().coerceAtLeast(1)
+        var outScale = scale
+        if (maxEdge > 0) {
+            val longest = maxOf(bitmap.width, bitmap.height)
+            if (longest > maxEdge) outScale = minOf(outScale, maxEdge.toFloat() / longest)
+        }
+        val target = if (outScale < 0.999f) {
+            val w = (bitmap.width * outScale).toInt().coerceAtLeast(1)
+            val h = (bitmap.height * outScale).toInt().coerceAtLeast(1)
             Bitmap.createScaledBitmap(bitmap, w, h, true)
         } else {
             bitmap
@@ -261,7 +267,7 @@ object Exporter {
     }
 
     /** Rough file-size estimate: compress a small sample, scale by pixel count. */
-    fun estimateSize(src: Bitmap, format: String, quality: Int, scale: Float): String {
+    fun estimateSize(src: Bitmap, format: String, quality: Int, scale: Float, maxEdge: Int = 0): String {
         val compress = when (format) {
             "PNG" -> Bitmap.CompressFormat.PNG
             "WEBP" -> if (Build.VERSION.SDK_INT >= 30) Bitmap.CompressFormat.WEBP_LOSSY
@@ -274,7 +280,12 @@ object Exporter {
         val bos = java.io.ByteArrayOutputStream()
         sample.compress(compress, quality.coerceIn(1, 100), bos)
         val samplePx = (sampleW * sampleH).toDouble()
-        val targetPx = (src.width * scale) * (src.height * scale)
+        var eff = scale
+        if (maxEdge > 0) {
+            val longest = maxOf(src.width, src.height)
+            if (longest > maxEdge) eff = minOf(eff, maxEdge.toFloat() / longest)
+        }
+        val targetPx = (src.width * eff) * (src.height * eff)
         val bytes = bos.size().toDouble() * targetPx / samplePx
         return when {
             bytes >= 1024 * 1024 -> String.format("%.1f MB", bytes / (1024 * 1024))

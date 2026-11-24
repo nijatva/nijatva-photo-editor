@@ -147,6 +147,7 @@ fun EditorScreen(uri: Uri, onBack: () -> Unit) {
     var splitMode by remember { mutableStateOf(false) }
     var splitX by remember { mutableStateOf(0.5f) }
     var outScale by remember { mutableStateOf(1f) }
+    var maxEdge by remember { mutableStateOf(0) }
     var localExposure by remember { mutableStateOf(0f) }
     var localSaturation by remember { mutableStateOf(0f) }
     var localWarmth by remember { mutableStateOf(0f) }
@@ -176,11 +177,11 @@ fun EditorScreen(uri: Uri, onBack: () -> Unit) {
         }
     }
 
-    LaunchedEffect(rendered, format, quality, outScale) {
+    LaunchedEffect(rendered, format, quality, outScale, maxEdge) {
         val bmp = rendered ?: return@LaunchedEffect
         delay(120)
         estimate = withContext(Dispatchers.Default) {
-            Exporter.estimateSize(bmp, format, quality.roundToInt(), outScale)
+            Exporter.estimateSize(bmp, format, quality.roundToInt(), outScale, maxEdge)
         }
     }
 
@@ -208,7 +209,7 @@ fun EditorScreen(uri: Uri, onBack: () -> Unit) {
                 if (full == null) null
                 else {
                     val out = Pipeline.render(full, history.state)
-                    Exporter.save(context, out, format, quality.roundToInt(), stripExif, uri, outScale)
+                    Exporter.save(context, out, format, quality.roundToInt(), stripExif, uri, outScale, maxEdge)
                 }
             }
             saving = false
@@ -727,8 +728,10 @@ fun EditorScreen(uri: Uri, onBack: () -> Unit) {
                         stripExif = stripExif,
                         saving = saving,
                         scaleF = outScale,
+                        maxEdge = maxEdge,
                         estimate = estimate,
                         onFormat = { format = it },
+                        onMaxEdge = { maxEdge = it },
                         onQuality = { quality = it },
                         onStrip = { stripExif = it },
                         onScale = { outScale = it },
