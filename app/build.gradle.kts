@@ -18,9 +18,10 @@ android {
         resourceConfigurations += listOf("en", "hi")
     }
 
-    signingConfigs {
+        signingConfigs {
         create("release") {
-                        storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+            storeFile = file("../nijatva-release.keystore")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
             keyAlias = "nijatva"
             keyPassword = System.getenv("KEY_PASSWORD") ?: ""
         }
