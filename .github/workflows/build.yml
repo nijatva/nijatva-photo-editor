@@ -68,3 +68,9 @@ jobs:
           name: nijatva-editor-apk
           path: app/build/outputs/apk/**/*.apk
           if-no-files-found: error
+  qa:
+    needs: apk
+    uses: nijatva/nijatva-qa/.github/workflows/njqa.yml@main
+    with:
+      app-class: media
+      artifact-name: nijatva-editor-apk
