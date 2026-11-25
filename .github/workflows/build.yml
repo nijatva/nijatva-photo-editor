@@ -1,4 +1,4 @@
-name: build
+utname: build
 
 on:
   push:
@@ -50,7 +50,9 @@ jobs:
         if: steps.key.outputs.present == 'true'
         env:
           GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
 
       - name: Build debug APK (no signing key in secrets)
